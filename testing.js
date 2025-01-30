@@ -1,29 +1,90 @@
-async function fetchSteamData() {
-  try {
-      // Replace 'YOUR_API_KEY' with your actual Steam API key
-      const apiKey = 'YOUR_API_KEY';
-      const steamId = 'No key yet :('; // Example Steam ID
-      const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${apiKey}&steamids=${steamId}`;
+document.getElementById("fetchUserDetails").addEventListener("click", async function() {
+    let steamId = document.getElementById("steamIdInput").value;
 
-      const response = await fetch(url);
-      const data = await response.json();
+    if (!steamId) {
+        alert("Please enter a Steam ID.");
+        return;
+    }
 
-      if (data.response && data.response.players.length > 0) {
-          const player = data.response.players[0];
+    try {
+        // Fetch user details
+        let userResponse = await fetch(`http://127.0.0.1:5000/steam/user?steam_id=${steamId}`);
+        let userData = await userResponse.json();
+        updateUserTable(userData);
 
-          // Update Box 1 and Box 2 with player data
-          document.getElementById('box1').innerText = `Name: ${player.personaname}`;
-          document.getElementById('box2').innerText = `Profile URL: ${player.profileurl}`;
-      } else {
-          document.getElementById('box1').innerText = 'No player data found.';
-          document.getElementById('box2').innerText = 'No player data found.';
-      }
-  } catch (error) {
-      console.error('Error fetching data:', error);
-      document.getElementById('box1').innerText = 'Error loading data.';
-      document.getElementById('box2').innerText = 'Error loading data.';
-  }
+        // Fetch ban status
+        let banResponse = await fetch(`http://127.0.0.1:5000/steam/ban?steam_id=${steamId}`);
+        let banData = await banResponse.json();
+        updateBanTable(banData);
+
+        // Fetch user groups
+        let groupsResponse = await fetch(`http://127.0.0.1:5000/steam/groups?steam_id=${steamId}`);
+        let groupsData = await groupsResponse.json();
+        updateGroupsTable(groupsData);
+        
+    } catch (error) {
+        console.error("Error fetching data:", error);
+    }
+});
+
+// Function to update the user table
+function updateUserTable(user) {
+    let userDetails = document.getElementById("userDetails");
+    if (user.error) {
+        userDetails.innerHTML = `<tr><td colspan="2">Error: ${user.error}</td></tr>`;
+    } else {
+        userDetails.innerHTML = `
+            <tr>
+                <td><strong>Username:</strong></td>
+                <td>${user.personaname}</td>
+            </tr>
+            <tr>
+                <td><strong>Avatar:</strong></td>
+                <td><img src="${user.avatar}" alt="User Avatar"></td>
+            </tr>
+        `;
+    }
 }
 
-// Call the function to fetch data and update the content
-fetchSteamData();
+// Function to update the ban status table
+function updateBanTable(ban) {
+    let banStatus = document.getElementById("banStatus");
+    if (ban.error) {
+        banStatus.innerHTML = `<tr><td colspan="2">Error: ${ban.error}</td></tr>`;
+    } else {
+        banStatus.innerHTML = `
+            <tr>
+                <td><strong>VAC Banned:</strong></td>
+                <td>${ban.VACBanned ? "Yes" : "No"}</td>
+            </tr>
+            <tr>
+                <td><strong>Number of VAC Bans:</strong></td>
+                <td>${ban.NumberOfVACBans}</td>
+            </tr>
+            <tr>
+                <td><strong>Community Banned:</strong></td>
+                <td>${ban.CommunityBanned ? "Yes" : "No"}</td>
+            </tr>
+            <tr>
+                <td><strong>Game Bans:</strong></td>
+                <td>${ban.NumberOfGameBans}</td>
+            </tr>
+        `;
+    }
+}
+
+// Function to update the groups table
+function updateGroupsTable(groups) {
+    let groupsList = document.getElementById("groupsList");
+    if (groups.error) {
+        groupsList.innerHTML = `<tr><td colspan="2">Error: ${groups.error}</td></tr>`;
+    } else {
+        let groupsHTML = groups.map(group => `
+            <tr><td>Group ID</td><td>${group.gid}</td></tr>
+        `).join("");
+        groupsList.innerHTML = groupsHTML;
+    }
+}
+
+
+//test id 76561198073885832
